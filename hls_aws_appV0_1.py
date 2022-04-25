@@ -34,9 +34,8 @@ from dask.distributed import LocalCluster, Client
 import dask
 aws=False
 fetch.setup_env(aws=aws)
-cluster = LocalCluster(n_workers=8, threads_per_worker=2)
+cluster = LocalCluster(n_workers=1, threads_per_worker=2)
 client = Client(cluster)
-display(client)
 
 class getData(pm.Parameterized):
     bm_mod = pickle.load(open('src/models/CPER_HLS_to_VOR_biomass_model_lr_simp.pk', 'rb'))
