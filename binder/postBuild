@@ -1,0 +1,3 @@
+#!/bin/bash
+panel serve hls_aws_appV0_1.py
+#EOF
