@@ -7,6 +7,8 @@ from datetime import datetime, timedelta
 import numpy as np
 import xarray as xr
 import certifi
+from pyproj import Transformer
+
 
 # Create a dictionary (i.e., look-up table; LUT) including the HLS product bands mapped to names
 lut = {'HLSS30':
@@ -129,10 +131,10 @@ def setup_netrc(creds, aws):
         return('')
 
     
-def build_xr(stac_dict, lut=lut, bbox_latlon=None, stack_chunks=(4000, 4000)):
+def build_xr(stac_dict, lut=lut, bbox=None, stack_chunks=(4000, 4000), proj_epsg=32613):
     try:
-        s30_stack = stackstac.stack(stac_dict['S30'], epsg=32613, resolution=30, assets=[i for i in lut['HLSS30'] if lut['HLSS30'][i] in needed_bands],
-                                    bounds_latlon=bbox_latlon, chunksize=stack_chunks)
+        s30_stack = stackstac.stack(stac_dict['S30'], epsg=proj_epsg, resolution=30, assets=[i for i in lut['HLSS30'] if lut['HLSS30'][i] in needed_bands],
+                                    bounds=bbox, chunksize=stack_chunks)
         s30_stack['band'] = [lut['HLSS30'][b] for b in s30_stack['band'].values]
         s30_stack['time'] = [datetime.fromtimestamp(t) for t in s30_stack.time.astype('int').values//1000000000]
         s30_stack = s30_stack.to_dataset(dim='band').reset_coords(['end_datetime', 'start_datetime'], drop=True)
@@ -141,7 +143,7 @@ def build_xr(stac_dict, lut=lut, bbox_latlon=None, stack_chunks=(4000, 4000)):
         s30_stack = None
     try:
         l30_stack = stackstac.stack(stac_dict['L30'], epsg=32613, resolution=30, assets=[i for i in lut['HLSL30'] if lut['HLSL30'][i] in needed_bands],
-                                   bounds_latlon=bbox_latlon, chunksize=stack_chunks)
+                                   bounds=bbox, chunksize=stack_chunks)
         l30_stack['band'] = [lut['HLSL30'][b] for b in l30_stack['band'].values]
         l30_stack['time'] = [datetime.fromtimestamp(t) for t in l30_stack.time.astype('int').values//1000000000]
         l30_stack = l30_stack.to_dataset(dim='band').reset_coords(['end_datetime', 'start_datetime'], drop=True)
@@ -159,10 +161,14 @@ def build_xr(stac_dict, lut=lut, bbox_latlon=None, stack_chunks=(4000, 4000)):
     return hls_stack.chunk({'time': 1, 'y': -1, 'x': -1})
     
 
-def get_hls(hls_data={}, bbox_latlon=[-104.79107047, 40.78311181, -104.67687336, 40.87008987], lut=lut, lim=100, aws=False, stack_chunks=(4000, 4000)):   
+def get_hls(hls_data={}, bbox=[517617.2187, 4514729.5, 527253.4091, 4524372.5], 
+            lut=lut, lim=100, aws=False, stack_chunks=(4000, 4000), proj_epsg=32613):   
     # run functions
+    transformer = Transformer.from_crs('epsg:' + str(proj_epsg), 'epsg:4326')
+    bbox_lon, bbox_lat = transformer.transform(bbox[[0, 2]], bbox[[1,3]])
+    bbox_latlon = list(np.array(list(map(list, zip(bbox_lat, bbox_lon)))).flatten())
     catalog = HLS_CMR_STAC(hls_data, bbox_latlon, lim, aws)
-    da  = build_xr(catalog, lut, bbox_latlon, stack_chunks)
+    da  = build_xr(catalog, lut, bbox, stack_chunks, proj_epsg)
     return da
 
 
