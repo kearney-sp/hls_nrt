@@ -1,0 +1,32 @@
+name: hls_nrt_env
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - cartopy
+  - certifi
+  - cvxopt
+  - dask
+  - geopandas
+  - geoviews
+  - holoviews
+  - hvplot
+  - jupyterlab
+  - matplotlib
+  - nodejs
+  - numpy
+  - pandas
+  - param
+  - panel
+  - pip
+  - rasterio
+  - rioxarray
+  - scikit-image
+  - scikit-learn
+  - scipy
+  - stackstac
+  - statsmodels
+  - tqdm
+  - xarray
+  - pip:
+    -pysptools
