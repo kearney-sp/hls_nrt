@@ -1,0 +1,3 @@
+# sudo-apt installs required for pip-install of cartopy
+libproj-dev proj-data proj-bin 
+libgeos-dev
