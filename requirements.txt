@@ -1,4 +1,4 @@
-python-3.10.4
+python-3.10.3
 cartopy
 certifi
 cvxopt
@@ -25,3 +25,4 @@ statsmodels
 tqdm
 xarray
 pysptools
+git+https://github.com/kearney-sp/hls_nrt_utils.git
