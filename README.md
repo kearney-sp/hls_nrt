@@ -9,3 +9,5 @@ https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/binder?urlpath=git
 
 
 https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/main?filepath=hls_aws_app.ipynb
+
+https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/main?urlpath=/panel/hls_aws_app
