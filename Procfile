@@ -1,0 +1,1 @@
+web: panel serve --address="0.0.0.0" --port=$PORT hls_aws_nrt.ipynb --allow-websocket-origin=range-sgx.herokuapp.com
