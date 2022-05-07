@@ -1,4 +1,5 @@
-FROM usgs/miniconda3
+# Container for building the environment
+FROM condaforge/mambaforge:4.9.2-5 as conda
 
 # Grab requirements.txt.
 ADD ./hls_nrt_environment.yml /tmp/environment.yml
@@ -7,6 +8,6 @@ ADD ./hls_nrt_environment.yml /tmp/environment.yml
 ADD . /opt/webapp/
 WORKDIR /opt/webapp
 
-RUN conda env update --file /tmp/environment.yml --prune
+RUN mamba create --copy -p /env --file /tmp/environment.yml && conda clean -afy
 
-CMD panel serve --address="0.0.0.0" --port=$PORT hls_aws_nrt.ipynb --allow-websocket-origin=range-sgx.herokuapp.com
+#CMD panel serve --address="0.0.0.0" --port=$PORT hls_aws_nrt.ipynb --allow-websocket-origin=range-sgx.herokuapp.com
