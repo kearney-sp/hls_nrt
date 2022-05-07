@@ -1,4 +1,4 @@
-#FROM heroku/miniconda
+FROM usgs/miniconda3
 
 # Grab requirements.txt.
 ADD ./hls_nrt_environment.yml /tmp/environment.yml
