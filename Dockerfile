@@ -4,9 +4,9 @@ FROM condaforge/mambaforge:4.9.2-5 as conda
 # Grab requirements.txt.
 ADD ./hls_nrt_environment.yml /tmp/environment.yml
 
-# Add our code
+# Add our code and set working directory
 ADD . /opt/webapp/
-#WORKDIR /opt/webapp
+WORKDIR /opt/webapp
 
 RUN mamba env create -p /env --file /tmp/environment.yml && conda clean -afy
 
