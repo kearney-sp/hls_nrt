@@ -8,6 +8,6 @@ ADD ./hls_nrt_environment.yml /tmp/environment.yml
 ADD . /opt/webapp/
 WORKDIR /opt/webapp
 
-RUN mamba env create --copy -p /env --file /tmp/environment.yml && conda clean -afy
+RUN mamba env create --file /tmp/environment.yml && conda clean -afy
 
 #CMD panel serve --address="0.0.0.0" --port=$PORT hls_aws_nrt.ipynb --allow-websocket-origin=range-sgx.herokuapp.com
