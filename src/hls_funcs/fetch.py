@@ -88,9 +88,9 @@ def HLS_CMR_STAC(hls_data, bbox_latlon, lim=100, aws=False):
         for stac in s30_items:
             for band in stac['assets']:
                 stac['assets'][band]['href'] = stac['assets'][band]['href'].replace('https://lpdaac.earthdata.nasa.gov/lp-prod-protected', 
-                                                                                    '/vsis3/lp-prod-protected')
+                                                                                    's3://lp-prod-protected')
                 stac['assets'][band]['href'] = stac['assets'][band]['href'].replace('https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected', 
-                                                                                    '/vsis3/lp-prod-protected')
+                                                                                    's3://lp-prod-protected')
                 
         for stac in l30_items:
             for band in stac['assets']:
@@ -177,7 +177,7 @@ def setup_env(aws=False, creds=[]):
     if aws:
         # set up creds
         s3_cred = setup_netrc(creds, aws=aws)
-        env = dict(GDAL_DISABLE_READDIR_ON_OPEN='FALSE', 
+        env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
                    #AWS_NO_SIGN_REQUEST='YES',
                    GDAL_MAX_RAW_BLOCK_CACHE_SIZE='200000000',
                    GDAL_SWATH_SIZE='200000000',
