@@ -174,36 +174,37 @@ def get_hls(hls_data={}, bbox=[517617.2187, 4514729.5, 527253.4091, 4524372.5],
 def setup_env(aws=False, creds=[]):
     #define gdalenv
     if aws:
-        import boto3
-        import rasterio as rio
-        from rasterio.session import AWSSession
+        #import boto3
+        #import rasterio as rio
+        #from rasterio.session import AWSSession
         # set up creds
         s3_cred = setup_netrc(creds, aws=aws)
-        #env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
-        #           #AWS_NO_SIGN_REQUEST='YES',
-        #           GDAL_MAX_RAW_BLOCK_CACHE_SIZE='200000000',
-        #           GDAL_SWATH_SIZE='200000000',
-        #           VSI_CURL_CACHE_SIZE='200000000',
-        #           CPL_VSIL_CURL_ALLOWED_EXTENSIONS='TIF',
-        #           GDAL_HTTP_UNSAFESSL='YES',
-        #           GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
-        #           GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'),
-        #           AWS_REGION='us-west-2',
-        #           AWS_SECRET_ACCESS_KEY=s3_cred['secretAccessKey'],
-        #           AWS_ACCESS_KEY_ID=s3_cred['accessKeyId'],
-        #           AWS_SESSION_TOKEN=s3_cred['sessionToken'],
-        #           CURL_CA_BUNDLE=certifi.where())
-        #os.environ.update(env)
-        session = boto3.Session(aws_access_key_id=s3_cred['accessKeyId'], 
-                        aws_secret_access_key=s3_cred['secretAccessKey'],
-                        aws_session_token=s3_cred['sessionToken'],
-                        region_name='us-west-2')
+        env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
+                   #AWS_NO_SIGN_REQUEST='YES',
+                   GDAL_MAX_RAW_BLOCK_CACHE_SIZE='200000000',
+                   GDAL_SWATH_SIZE='200000000',
+                   VSI_CURL_CACHE_SIZE='200000000',
+                   CPL_VSIL_CURL_ALLOWED_EXTENSIONS='TIF',
+                   GDAL_HTTP_UNSAFESSL='YES',
+                   GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
+                   GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'),
+                   AWS_REGION='us-west-2',
+                   AWS_SECRET_ACCESS_KEY=s3_cred['secretAccessKey'],
+                   AWS_ACCESS_KEY_ID=s3_cred['accessKeyId'],
+                   AWS_SESSION_TOKEN=s3_cred['sessionToken'],
+                   AWS_REQUEST_PAYER='requester',
+                   CURL_CA_BUNDLE=certifi.where())
+        os.environ.update(env)
+        #session = boto3.Session(aws_access_key_id=s3_cred['accessKeyId'], 
+        #                aws_secret_access_key=s3_cred['secretAccessKey'],
+        #                aws_session_token=s3_cred['sessionToken'],
+        #                region_name='us-west-2')
         
-        rio_env = rio.Env(AWSSession(session),
-                  GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR',
-                  GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
-                  GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'))
-        rio_env.__enter__()
+        #rio_env = rio.Env(AWSSession(session),
+        #          GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR',
+        #          GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
+        #          GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'))
+        #rio_env.__enter__()
         
     else:
         env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
