@@ -8,8 +8,6 @@ import numpy as np
 import xarray as xr
 import certifi
 from pyproj import Transformer
-import boto3
-import rasterio as rio
 
 # Create a dictionary (i.e., look-up table; LUT) including the HLS product bands mapped to names
 lut = {'HLSS30':
@@ -176,6 +174,9 @@ def get_hls(hls_data={}, bbox=[517617.2187, 4514729.5, 527253.4091, 4524372.5],
 def setup_env(aws=False, creds=[]):
     #define gdalenv
     if aws:
+        import boto3
+        import rasterio as rio
+        from rasterio.session import AWSSession
         # set up creds
         s3_cred = setup_netrc(creds, aws=aws)
         #env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
