@@ -94,9 +94,9 @@ def HLS_CMR_STAC(hls_data, bbox_latlon, lim=100, aws=False):
         for stac in l30_items:
             for band in stac['assets']:
                 stac['assets'][band]['href'] = stac['assets'][band]['href'].replace('https://lpdaac.earthdata.nasa.gov/lp-prod-protected', 
-                                                                                    '/vsis3/lp-prod-protected')
+                                                                                    's3://lp-prod-protected')
                 stac['assets'][band]['href'] = stac['assets'][band]['href'].replace('https://data.lpdaac.earthdatacloud.nasa.gov/lp-prod-protected', 
-                                                                                    '/vsis3/lp-prod-protected')
+                                                                                    's3://lp-prod-protected')
     return {'S30': s30_items,
             'L30': l30_items}
 
@@ -194,7 +194,6 @@ def setup_env(aws=False, creds=[]):
                    AWS_SESSION_TOKEN=s3_cred['sessionToken'],
                    AWS_REQUEST_PAYER='requester',
                    CURL_CA_BUNDLE=certifi.where())
-        os.environ.update(env)
         #session = boto3.Session(aws_access_key_id=s3_cred['accessKeyId'], 
         #                aws_secret_access_key=s3_cred['secretAccessKey'],
         #                aws_session_token=s3_cred['sessionToken'],
@@ -215,5 +214,6 @@ def setup_env(aws=False, creds=[]):
                    GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
                    GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'),
                    CURL_CA_BUNDLE=certifi.where())
-        os.environ.update(env)
+    
+    os.environ.update(env)
     
