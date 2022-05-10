@@ -8,7 +8,8 @@ import numpy as np
 import xarray as xr
 import certifi
 from pyproj import Transformer
-
+import boto3
+import rasterio as rio
 
 # Create a dictionary (i.e., look-up table; LUT) including the HLS product bands mapped to names
 lut = {'HLSS30':
@@ -177,20 +178,32 @@ def setup_env(aws=False, creds=[]):
     if aws:
         # set up creds
         s3_cred = setup_netrc(creds, aws=aws)
-        env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
-                   #AWS_NO_SIGN_REQUEST='YES',
-                   GDAL_MAX_RAW_BLOCK_CACHE_SIZE='200000000',
-                   GDAL_SWATH_SIZE='200000000',
-                   VSI_CURL_CACHE_SIZE='200000000',
-                   CPL_VSIL_CURL_ALLOWED_EXTENSIONS='TIF',
-                   GDAL_HTTP_UNSAFESSL='YES',
-                   GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
-                   GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'),
-                   AWS_REGION='us-west-2',
-                   AWS_SECRET_ACCESS_KEY=s3_cred['secretAccessKey'],
-                   AWS_ACCESS_KEY_ID=s3_cred['accessKeyId'],
-                   AWS_SESSION_TOKEN=s3_cred['sessionToken'],
-                   CURL_CA_BUNDLE=certifi.where())
+        #env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
+        #           #AWS_NO_SIGN_REQUEST='YES',
+        #           GDAL_MAX_RAW_BLOCK_CACHE_SIZE='200000000',
+        #           GDAL_SWATH_SIZE='200000000',
+        #           VSI_CURL_CACHE_SIZE='200000000',
+        #           CPL_VSIL_CURL_ALLOWED_EXTENSIONS='TIF',
+        #           GDAL_HTTP_UNSAFESSL='YES',
+        #           GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
+        #           GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'),
+        #           AWS_REGION='us-west-2',
+        #           AWS_SECRET_ACCESS_KEY=s3_cred['secretAccessKey'],
+        #           AWS_ACCESS_KEY_ID=s3_cred['accessKeyId'],
+        #           AWS_SESSION_TOKEN=s3_cred['sessionToken'],
+        #           CURL_CA_BUNDLE=certifi.where())
+        #os.environ.update(env)
+        session = boto3.Session(aws_access_key_id=s3_cred['accessKeyId'], 
+                        aws_secret_access_key=s3_cred['secretAccessKey'],
+                        aws_session_token=s3_cred['sessionToken'],
+                        region_name='us-west-2')
+        
+        rio_env = rio.Env(AWSSession(session),
+                  GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR',
+                  GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
+                  GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'))
+        rio_env.__enter__()
+        
     else:
         env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
                    AWS_NO_SIGN_REQUEST='YES',
@@ -200,6 +213,5 @@ def setup_env(aws=False, creds=[]):
                    GDAL_HTTP_COOKIEFILE=os.path.expanduser('~/cookies.txt'),
                    GDAL_HTTP_COOKIEJAR=os.path.expanduser('~/cookies.txt'),
                    CURL_CA_BUNDLE=certifi.where())
-
-    os.environ.update(env)
+        os.environ.update(env)
     
