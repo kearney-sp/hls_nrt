@@ -4,8 +4,8 @@ import xarray as xr
 from rasterio import features
 
 
-def mask_hls(src):
-    band_QA = src.astype('int16')
+def mask_hls(da, mask_types=['all']):
+    band_QA = da.astype('int16')
 
     def unpack_bits(b_num):
         mask = np.subtract(np.divide(band_QA, 2 ** b_num).astype('int'),
@@ -21,21 +21,38 @@ def mask_hls(src):
     shadow_mask = mask_from_QA(band_QA, 3)
     snow_mask = mask_from_QA(band_QA, 4)
     water_mask = mask_from_QA(band_QA, 5)
+    
+    mask_dict = {
+        'cirrus': cirrus_mask,
+        'cloud': cloud_mask,
+        'cloud_adj': cloud_adj_mask,
+        'snow': snow_mask,
+        'water': water_mask
+    }
+    
+    if len(mask_types) == 1 and mask_types[0] == 'all':
+        all_masks = xr.concat([cirrus_mask, cloud_mask, cloud_adj_mask,
+                               shadow_mask, snow_mask, water_mask],
+                              dim='band')
+        QA_mask_all = all_masks.max(dim='band')
+        return QA_mask_all
+    elif len(mask_types) > 1:
+        all_masks = xr.concat([mask_dict[x] for x in mask_types],
+                      dim='band')
+        QA_mask_all = all_masks.max(dim='band')
+        return QA_mask_all
+    elif len(mask_types) == 1:
+        return mask_dict[mask_types[0]]
+    else:
+        print('ERROR in "mask_types" definition. mask_types must be a list and one of, "all", "cirrus", "cloud", "cloud_adj", "snow", "water".')
 
-    all_masks = xr.concat([cirrus_mask, cloud_mask, cloud_adj_mask,
-                           shadow_mask, snow_mask, water_mask],
-                          dim='band')
-    QA_mask_all = all_masks.max(dim='band')
-    return QA_mask_all
-
-
-def bolton_mask(src, time_dim='time'):
+def bolton_mask(ds, time_dim='time'):
     from src.hls_funcs.bands import blue_func, swir2_func
-    dat_blue = blue_func(src)
-    dat_swir2 = swir2_func(src)
+    dat_blue = blue_func(ds)
+    dat_swir2 = swir2_func(ds)
 
-    def cloud_outlier_mask(src_blue):
-        blue_ts = src_blue / 10000.0
+    def cloud_outlier_mask(da_blue):
+        blue_ts = da_blue / 10000.0
         cloud_mask = np.zeros_like(blue_ts)
         for idx in range(len(blue_ts)):
             if not np.isnan(blue_ts[idx]):
@@ -64,8 +81,8 @@ def bolton_mask(src, time_dim='time'):
                                output_dtypes=[np.float])
         return xr_cm
 
-    def shadow_outlier_mask(src_swir2):
-        swir2_ts = src_swir2.copy()
+    def shadow_outlier_mask(da_swir2):
+        swir2_ts = da_swir2.copy()
         shadow_mask = np.zeros_like(swir2_ts)
         for idx in range(len(swir2_ts)):
             if not np.isnan(swir2_ts[idx]):

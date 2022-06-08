@@ -130,3 +130,9 @@ dmypy.json
 
 # Dask
 dask-worker-space/
+
+# Outputs
+output/
+
+# Open On Demands
+core.*
