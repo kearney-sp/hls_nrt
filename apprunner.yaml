@@ -9,7 +9,6 @@ build:
       - rm -rf ~/miniconda3/miniconda.sh
       - ~/miniconda3/bin/conda init bash
       - ~/miniconda3/bin/conda init zsh
-      - exec bash
     build:
       - conda create -n hls_nrt_env
       - conda activate hls_nrt_env
