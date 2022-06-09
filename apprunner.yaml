@@ -1,0 +1,10 @@
+version: 1.0
+runtime: python3
+build:
+  commands:
+    build:
+      - conda install -c conda-forge conda-requirements.txt
+      - pip install -r requirements.txt
+run:
+  runtime-version: 3.8
+  command: panel serve bokeh_interact_test.ipynb
