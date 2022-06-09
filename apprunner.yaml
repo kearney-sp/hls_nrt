@@ -11,11 +11,14 @@ build:
       - ~/miniconda3/bin/conda init zsh
       - exec bash
     build:
-      - pip install -r requirements.txt
-    post-build:
       - conda create -n hls_nrt_env
       - conda activate hls_nrt_env
       - conda install conda-requirements.txt
+      - pip install -r requirements.txt
+      - conda clean -a
+  env:
+    - PATH
+    - ~/miniconda3/bin:$PATH
 run:
   runtime-version: 3.8
   command: panel serve bokeh_interact_test.ipynb
