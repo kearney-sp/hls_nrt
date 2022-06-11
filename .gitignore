@@ -131,8 +131,9 @@ dmypy.json
 # Dask
 dask-worker-space/
 
-# Outputs
+# potentially large directories
 output/
+data/hls_nrt/
 
 # Open On Demands
 core.*

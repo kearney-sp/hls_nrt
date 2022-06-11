@@ -2,8 +2,10 @@ cartopy
 certifi
 cvxopt
 dask
+gdal
 geopandas
 geoviews
+google-cloud-storage
 holoviews
 hvplot
 jupyterlab
