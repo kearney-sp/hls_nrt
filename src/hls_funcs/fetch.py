@@ -51,7 +51,7 @@ all_bands = ['ALL', 'COASTAL-AEROSOL', 'BLUE', 'GREEN', 'RED', 'RED-EDGE1', 'RED
              'NIR1', 'SWIR1', 'SWIR2', 'CIRRUS', 'TIR1', 'TIR2', 'WATER-VAPOR', 'FMASK']
 
 # list of just the bands currently used in functions
-needed_bands = ['BLUE', 'GREEN', 'RED', 'NIR1', 'SWIR1', 'SWIR2', 'FMASK', 'SZA', 'SAA']
+needed_bands = ['BLUE', 'GREEN', 'RED', 'NIR1', 'SWIR1', 'SWIR2', 'FMASK', 'SZA', 'SAA', 'VZA', 'VAA']
 
 
 def HLS_CMR_STAC(hls_data, bbox_latlon, lim=100, aws=False, debug=False):

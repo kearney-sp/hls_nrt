@@ -21,18 +21,28 @@ def mask_hls(da, mask_types=['all']):
     shadow_mask = mask_from_QA(band_QA, 3)
     snow_mask = mask_from_QA(band_QA, 4)
     water_mask = mask_from_QA(band_QA, 5)
+    low_aerosol_mask = np.logical_and(mask_from_QA(band_QA, 6) == 0, mask_from_QA(band_QA, 7) == 1).astype('int8')
+    mod_aerosol_mask = np.logical_and(mask_from_QA(band_QA, 6) == 1, mask_from_QA(band_QA, 7) == 0).astype('int8')
+    hi_aerosol_mask = np.logical_and(mask_from_QA(band_QA, 6) == 1, mask_from_QA(band_QA, 7) == 1).astype('int8')
+    all_aerosol_mask = xr.concat([low_aerosol_mask, mod_aerosol_mask, hi_aerosol_mask], 
+                                 dim='band').max(dim='band')
     
     mask_dict = {
         'cirrus': cirrus_mask,
         'cloud': cloud_mask,
         'cloud_adj': cloud_adj_mask,
+        'shadow': shadow_mask,
         'snow': snow_mask,
-        'water': water_mask
+        'water': water_mask,
+        'low_aerosol': low_aerosol_mask,
+        'mod_aerosol': mod_aerosol_mask,
+        'high_aerosol': hi_aerosol_mask,
+        'any_aerosol': all_aerosol_mask
     }
     
     if 'all' in mask_types:
         all_masks = xr.concat([cirrus_mask, cloud_mask, cloud_adj_mask,
-                               shadow_mask, snow_mask, water_mask],
+                               shadow_mask, snow_mask, water_mask, hi_aerosol_mask],
                               dim='band')
         QA_mask_all = all_masks.max(dim='band')
         return QA_mask_all
