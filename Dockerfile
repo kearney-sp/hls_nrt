@@ -1,11 +1,25 @@
 # Container for building the environment
-FROM condaforge/mambaforge:4.9.2-5 as conda
+#FROM condaforge/mambaforge:4.9.2-5 as conda
+#FROM continuumio/miniconda3
 
-# update
+FROM ubuntu:20.04
+ENV PATH="/root/miniconda3/bin:${PATH}"
+ARG PATH="/root/miniconda3/bin:${PATH}"
 RUN apt-get update
 
+RUN apt-get install -y wget && rm -rf /var/lib/apt/lists/*
+
+RUN wget \
+    https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && mkdir /root/.conda \
+    && bash Miniconda3-latest-Linux-x86_64.sh -b \
+    && rm -f Miniconda3-latest-Linux-x86_64.sh
+
+# update
+#RUN apt-get update
+
 # get dependencies that don't seem to be installing via mamba
-RUN apt-get install -y libsm6 libxext6 libxrender-dev
+#RUN apt-get install -y libsm6 libxext6 libxrender-dev
 
 # Grab requirements.txt.
 ADD ./hls_nrt_environment.yml /tmp/environment.yml

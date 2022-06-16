@@ -30,7 +30,7 @@ def mask_hls(da, mask_types=['all']):
         'water': water_mask
     }
     
-    if len(mask_types) == 1 and mask_types[0] == 'all':
+    if 'all' in mask_types:
         all_masks = xr.concat([cirrus_mask, cloud_mask, cloud_adj_mask,
                                shadow_mask, snow_mask, water_mask],
                               dim='band')
