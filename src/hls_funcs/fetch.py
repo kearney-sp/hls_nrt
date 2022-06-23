@@ -198,7 +198,9 @@ def setup_env(aws=False, creds=[]):
         #from rasterio.session import AWSSession
         # set up creds
         s3_cred = setup_netrc(creds, aws=aws)
-        env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
+        env = dict(GDAL_HTTP_MAX_RETRY='5',
+                   GDAL_HTTP_RETRY_DELAY='2',
+                   GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
                    #AWS_NO_SIGN_REQUEST='YES',
                    GDAL_MAX_RAW_BLOCK_CACHE_SIZE='200000000',
                    GDAL_SWATH_SIZE='200000000',
@@ -225,7 +227,9 @@ def setup_env(aws=False, creds=[]):
         #rio_env.__enter__()
         
     else:
-        env = dict(GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
+        env = dict(GDAL_HTTP_MAX_RETRY='5',
+                   GDAL_HTTP_RETRY_DELAY='2',
+                   GDAL_DISABLE_READDIR_ON_OPEN='EMPTY_DIR', 
                    AWS_NO_SIGN_REQUEST='YES',
                    GDAL_MAX_RAW_BLOCK_CACHE_SIZE='200000000',
                    GDAL_SWATH_SIZE='200000000',
