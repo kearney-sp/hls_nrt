@@ -134,6 +134,8 @@ dask-worker-space/
 # potentially large directories
 output/
 data/hls_nrt/
+data/ee_lta/
+data/gcloud/
 
 # Open On Demands
 core.*
