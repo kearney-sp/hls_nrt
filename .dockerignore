@@ -1,2 +1,11 @@
-*/dask-worker-space/*
-data/hls_nrt/*/**/*.tif
+dask-worker-space
+dask-worker-space/*
+dask-worker-space/**/*
+#data/hls_nrt/*/**/*.tif
+data
+data/*
+data/**/*
+binder
+binder/*
+binder/**/*
+
