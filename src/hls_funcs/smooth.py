@@ -131,10 +131,14 @@ def double_savgol(ts, double=True, window1_min=11, window2=59, polynom1=3, polyn
         ts_interp = ts_interp.interpolate(method='linear', limit_area='inside', limit=limit)
         ts_interp = ts_interp.interpolate(method='linear', limit=None, limit_direction='both',
                                           limit_area='outside')
-    try:
-        ts_smooth = savgol_filter(ts_interp, window_length=window2, polyorder=polynom2)
-    except np.linalg.LinAlgError:
-        ts_smooth = ts_interp
+    if window2 < ts_interp.size:
+        try:
+            ts_smooth = savgol_filter(ts_interp, window_length=window2, polyorder=polynom2)
+        except np.linalg.LinAlgError:
+            ts_smooth = ts_interp.rolling(21, center=True).mean()
+    else:
+        print('RuntimeWarning: window length larger than timeseries. Returning moving average of linear interpolation.')
+        ts_smooth = ts_interp.rolling(21, center=True).mean()
     return ts_smooth
 
 

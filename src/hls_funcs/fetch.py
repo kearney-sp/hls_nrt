@@ -80,9 +80,18 @@ def HLS_CMR_STAC(hls_data, bbox_latlon, lim=100, aws=False, debug=False):
             hls_collections = [c for c in collections if 'HLS' in c['collection']]
             s30_items = s30_items + [h for h in hls_collections if h['collection'] == 'HLSS30.v2.0']  # Grab HLSS30 collection and append
             l30_items = l30_items + [h for h in hls_collections if h['collection'] == 'HLSL30.v2.0']  # Grab HLSL30 collection and append
-            start_time = str(
-                max(datetime.strptime(s30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d'),
-                    datetime.strptime(l30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d')).date() + timedelta(days=1))
+            if len(s30_items) > 0 and len(l30_items) > 0:
+                start_time = str(
+                    max(datetime.strptime(s30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d'),
+                        datetime.strptime(l30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d')).date() + timedelta(days=1))
+            elif len(s30_items) > 0:
+                start_time = str(
+                    datetime.strptime(s30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d').date() + timedelta(days=1))
+            elif len(l30_items) > 0:
+                start_time = str(
+                    datetime.strptime(l30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d').date() + timedelta(days=1))
+            else:
+                break # stop searching if no results are found
             date_time = start_time+'/'+hls_data['date_range'][1]
             search_query3 = f"{search_query2}&datetime={date_time}"  # update query with new start time 
             if len([h for h in hls_collections if h['collection'] == 'HLSS30.v2.0']) + len([h for h in hls_collections if h['collection'] == 'HLSL30.v2.0']) == 0:

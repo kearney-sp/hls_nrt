@@ -25,7 +25,7 @@ def mask_hls_atsa(hls_ds, atsa_params, hls_mask, water, cloud, shadow):
     num_valid = np.logical_and(hls_ds['BLUE'].where(num_l > 0) >= rmin0,
                                hls_ds['BLUE'].where(num_l > 0) <= rmax).sum(dim=['y', 'x'])
 
-    rmin = hls_ds['BLUE'].where(num_valid > 0).min(dim=['y', 'x']).compute()
+    rmin = hls_ds['BLUE'].where(num_valid > 0).min(dim=['y', 'x'])#.compute()
     # set number of bins for calculating HOT
     n_bin = 50
     # get parameters to calculate HOT image
