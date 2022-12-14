@@ -55,32 +55,41 @@ needed_bands = ['BLUE', 'GREEN', 'RED', 'NIR1', 'SWIR1', 'SWIR2', 'FMASK', 'SZA'
 
 
 def HLS_CMR_STAC(hls_data, bbox_latlon, lim=100, aws=False, debug=False):
-    stac = 'https://cmr.earthdata.nasa.gov/stac/' # CMR-STAC API Endpoint
-    stac_response = r.get(stac).json()            # Call the STAC API endpoint
-    stac_lp = [s for s in stac_response['links'] if 'LP' in s['title']]  # Search for only LP-specific catalogs
+    #stac = 'https://cmr.earthdata.nasa.gov/stac/' # CMR-STAC API Endpoint
+    #stac_response = r.get(stac).json()            # Call the STAC API endpoint
+    #stac_lp = [s for s in stac_response['links'] if 'LP' in s['title']]  # Search for only LP-specific catalogs
 
     # LPCLOUD is the STAC catalog we will be using and exploring today
-    lp_cloud = r.get([s for s in stac_lp if s['title'] == 'LPCLOUD'][0]['href']).json()
-    lp_links = lp_cloud['links']
-    lp_search = [l['href'] for l in lp_links if l['rel'] == 'search'][0]  # Define the search endpoint
-    search_query = f"{lp_search}?&limit=100"    # Add in a limit parameter to retrieve 100 items at a time.
+    #lp_cloud = r.get([s for s in stac_lp if s['title'] == 'LPCLOUD'][0]['href']).json()
+    #lp_links = lp_cloud['links']
+    #lp_search = [l['href'] for l in lp_links if l['rel'] == 'search'][0]  # Define the search endpoint
+    lp_search_s30 = 'https://cmr.earthdata.nasa.gov/stac/LPCLOUD/search?&collections=HLSS30.v2.0'
+    lp_search_l30 = 'https://cmr.earthdata.nasa.gov/stac/LPCLOUD/search?&collections=HLSL30.v2.0'
+    #lp_search = 'https://cmr.earthdata.nasa.gov/search/granules.stac?collection_concept_id=C2021957295-LPCLOUD&collection_concept_id=C2021957657-LPCLOUD'
     bbox = f'{bbox_latlon[0]},{bbox_latlon[1]},{bbox_latlon[2]},{bbox_latlon[3]}'  # Defined from ROI bounds
-    search_query2 = f"{search_query}&bbox={bbox}"                                                  # Add bbox to query
     date_time = hls_data['date_range'][0]+'/'+hls_data['date_range'][1]  # Define start time period / end time period
-    search_query3 = f"{search_query2}&datetime={date_time}"  # Add to query that already includes bbox
+    
+    search_query_s30 = f"{lp_search_s30}&limit=100"    # Add in a limit parameter to retrieve 100 items at a time.
+    search_query2_s30 = f"{search_query_s30}&bbox={bbox}"                                                  # Add bbox to query    
+    search_query3_s30 = f"{search_query2_s30}&datetime={date_time}"  # Add to query that already includes bbox
+    
+    search_query_l30 = f"{lp_search_l30}&limit=100"    # Add in a limit parameter to retrieve 100 items at a time.
+    search_query2_l30 = f"{search_query_l30}&bbox={bbox}"                                                  # Add bbox to query    
+    search_query3_l30 = f"{search_query2_l30}&datetime={date_time}"  # Add to query that already includes bbox
+    
     if debug:
-        print(search_query3)
+        print(search_query3_s30)
     if lim > 100:
         s30_items = list()
         l30_items = list()
         for i in range(int(np.ceil(lim/100))):
             if i > 10:
                 print('WARNING: Fetching more than 1000 records, this may result in a very large dataset.')
-            collections = r.get(search_query3).json()['features']    
-            hls_collections = [c for c in collections if 'HLS' in c['collection']]
-            s30_items = s30_items + [h for h in hls_collections if h['collection'] == 'HLSS30.v2.0']  # Grab HLSS30 collection and append
-            l30_items = l30_items + [h for h in hls_collections if h['collection'] == 'HLSL30.v2.0']  # Grab HLSL30 collection and append
-            if len(s30_items) > 0 and len(l30_items) > 0:
+            features_s30 = r.get(search_query3_s30).json()['features']
+            features_l30 = r.get(search_query3_l30).json()['features']  
+            s30_items = s30_items + [h for h in features_s30]  # Grab HLSS30 collection and append
+            l30_items = l30_items + [h for h in features_l30]  # Grab HLSL30 collection and append
+            if (len(s30_items) > 0) and (len(l30_items) > 0):
                 start_time = str(
                     max(datetime.strptime(s30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d'),
                         datetime.strptime(l30_items[-1]['properties']['datetime'].split('T')[0], '%Y-%m-%d')).date() + timedelta(days=1))
@@ -93,14 +102,17 @@ def HLS_CMR_STAC(hls_data, bbox_latlon, lim=100, aws=False, debug=False):
             else:
                 break # stop searching if no results are found
             date_time = start_time+'/'+hls_data['date_range'][1]
-            search_query3 = f"{search_query2}&datetime={date_time}"  # update query with new start time 
-            if len([h for h in hls_collections if h['collection'] == 'HLSS30.v2.0']) + len([h for h in hls_collections if h['collection'] == 'HLSL30.v2.0']) == 0:
+            search_query3_s30 = f"{search_query2_s30}&datetime={date_time}"  # update query with new start time 
+            search_query3_l30 = f"{search_query2_l30}&datetime={date_time}"  # update query with new start time 
+            if debug:
+                print(search_query3_s30)
+            if (len(features_s30) + len(features_l30)) == 0:
                 break # stop searching if no results are found
     else:
-        collections = r.get(search_query3).json()['features']    
-        hls_collections = [c for c in collections if 'HLS' in c['collection']]
-        s30_items = [h for h in hls_collections if h['collection'] == 'HLSS30.v2.0']  # Grab HLSS30 collection
-        l30_items = [h for h in hls_collections if h['collection'] == 'HLSL30.v2.0']  # Grab HLSL30 collection
+        features_s30 = r.get(search_query3_s30).json()['features']
+        features_l30 = r.get(search_query3_l30).json()['features']    
+        s30_items = s30_items + [h for h in features_s30]  # Grab HLSS30 collection and append
+        l30_items = l30_items + [h for h in features_l30]  # Grab HLSL30 collection and append
     
     if aws:
         for stac in s30_items:
@@ -149,7 +161,7 @@ def setup_netrc(creds, aws):
         return('')
 
     
-def build_xr(stac_dict, lut=lut, bbox=None, stack_chunks=(4000, 4000), proj_epsg=32613):
+def build_xr(stac_dict, lut=lut, bbox=None, stack_chunks=(3660, 3660), proj_epsg=32613):
     try:
         s30_stack = stackstac.stack(stac_dict['S30'], epsg=proj_epsg, resolution=30,
                                     assets=[i for i in lut['HLSS30'] if lut['HLSS30'][i] in needed_bands],

@@ -176,7 +176,7 @@ def mask_hls_atsa(hls_ds, atsa_params, hls_mask, water, cloud, shadow):
     # get non-cloud land indices
     ind_l = np.logical_and(np.logical_or(water == 0, hls_ds['NIR1'] >= atsa_params['dn_max'] * 0.1), mask <= 1)
     num_l = ind_l.sum(dim=['y', 'x'])
-    ind_comon = np.logical_and(np.logical_and(water == 0, mask2 == 1), mask2.sel(time=time_least_cloud) == 1)
+    ind_comon = np.logical_and(np.logical_and(water == 0, mask2 == 1), mask2.sel(time=time_least_cloud.values) == 1)
     num_comon = ind_comon.sum(dim=['y', 'x'])
     
     # for dates with at least 100 pixels overlapping the clearest image, compute gain/bias. 
@@ -513,7 +513,7 @@ def shadow_zone(sun_za, sun_aa, v_za, v_aa, longest_d, shortest_d, mask, data):
             end_y1_i = int(np.round(
                 height_arr[int(num_int_i) - 1] * np.tan(sun_za_i) * np.cos(sun_aa_i)) + \
                           np.round(height_arr[int(num_int_i) - 1] * np.tan(v_za_i) * np.cos(v_aa_i)))
-            
+
             # there are four cases for the shadow shifting from clouds:
             mask0 = mask_arr.copy()
             for ih in range(0, int(num_int_i)):
