@@ -76,12 +76,13 @@ def HLS_CMR_STAC(hls_data, bbox_latlon, lim=100, aws=False, debug=False):
     search_query_l30 = f"{lp_search_l30}&limit=100"    # Add in a limit parameter to retrieve 100 items at a time.
     search_query2_l30 = f"{search_query_l30}&bbox={bbox}"                                                  # Add bbox to query    
     search_query3_l30 = f"{search_query2_l30}&datetime={date_time}"  # Add to query that already includes bbox
+
+    s30_items = list()
+    l30_items = list()
     
     if debug:
         print(search_query3_s30)
     if lim > 100:
-        s30_items = list()
-        l30_items = list()
         for i in range(int(np.ceil(lim/100))):
             if i > 10:
                 print('WARNING: Fetching more than 1000 records, this may result in a very large dataset.')
