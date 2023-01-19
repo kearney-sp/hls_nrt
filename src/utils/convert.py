@@ -10,7 +10,7 @@ def kmz_to_shp(kmz_path, tempDir):
     kmz = ZipFile(kmz_path, 'r')
     kmz.extract('doc.kml', tempDir)
 
-    gdf = gpd.read_file(os.path.join(tempDir,'doc.kml'))
+    gdf = gpd.read_file(os.path.join(tempDir,'doc.kml'))    
     
     return gdf
     
