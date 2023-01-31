@@ -131,11 +131,12 @@ dmypy.json
 # Dask
 dask-worker-space/
 
-# potentially large directories
+# potentially large directories and files
 output/
 data/hls_nrt/
 data/ee_lta/
 data/gcloud/
+*.nc
 
 # Open On Demands
 core.*
