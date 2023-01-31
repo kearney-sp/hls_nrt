@@ -503,56 +503,60 @@ def buffer_cloud(mask, buffern):
 def shadow_zone(sun_za, sun_aa, v_za, v_aa, longest_d, shortest_d, mask, data):
     
     def np_shadow_zone(num_int_i, h_low_i, mask_arr, nl, ns, sun_za_i, sun_aa_i, v_za_i, v_aa_i):
-        shadow_img_arr = np.zeros((nl, ns)).astype(bytearray)
-        shadow_edge_arr = np.zeros((nl, ns)).astype(bytearray)
-        if not np.isnan(num_int_i):
-            height_arr = h_low_i + np.arange(num_int_i) * 3.0
-            end_x1_i = int(np.round(
-                -height_arr[int(num_int_i) - 1] * np.tan(sun_za_i) * np.sin(sun_aa_i)) + \
-                          np.round(height_arr[int(num_int_i) - 1] * np.tan(v_za_i) * np.sin(v_aa_i)))
-            end_y1_i = int(np.round(
-                height_arr[int(num_int_i) - 1] * np.tan(sun_za_i) * np.cos(sun_aa_i)) + \
-                          np.round(height_arr[int(num_int_i) - 1] * np.tan(v_za_i) * np.cos(v_aa_i)))
+        try:
+            shadow_img_arr = np.zeros((nl, ns)).astype(bytearray)
+            shadow_edge_arr = np.zeros((nl, ns)).astype(bytearray)
+            if not np.isnan(num_int_i):
+                height_arr = h_low_i + np.arange(num_int_i) * 3.0
+                end_x1_i = int(np.round(
+                    -height_arr[int(num_int_i) - 1] * np.tan(sun_za_i) * np.sin(sun_aa_i)) + \
+                              np.round(height_arr[int(num_int_i) - 1] * np.tan(v_za_i) * np.sin(v_aa_i)))
+                end_y1_i = int(np.round(
+                    height_arr[int(num_int_i) - 1] * np.tan(sun_za_i) * np.cos(sun_aa_i)) + \
+                              np.round(height_arr[int(num_int_i) - 1] * np.tan(v_za_i) * np.cos(v_aa_i)))
 
-            # there are four cases for the shadow shifting from clouds:
-            mask0 = mask_arr.copy()
-            for ih in range(0, int(num_int_i)):
-                shift_x1 = np.round(-height_arr[ih] * np.tan(sun_za_i) * np.sin(sun_aa_i)) + \
-                np.round(height_arr[ih] * np.tan(v_za_i) * np.sin(v_aa_i))
-                shift_y1 = np.round(height_arr[ih] * np.tan(sun_za_i) * np.cos(sun_aa_i)) + \
-                np.round(height_arr[ih] * np.tan(v_za_i) * np.cos(v_aa_i))
-                shift_x1 = int(shift_x1)
-                shift_y1 = int(shift_y1)
-                mask_last = mask0.copy()
+                # there are four cases for the shadow shifting from clouds:
+                mask0 = mask_arr.copy()
+                for ih in range(0, int(num_int_i)):
+                    shift_x1 = np.round(-height_arr[ih] * np.tan(sun_za_i) * np.sin(sun_aa_i)) + \
+                    np.round(height_arr[ih] * np.tan(v_za_i) * np.sin(v_aa_i))
+                    shift_y1 = np.round(height_arr[ih] * np.tan(sun_za_i) * np.cos(sun_aa_i)) + \
+                    np.round(height_arr[ih] * np.tan(v_za_i) * np.cos(v_aa_i))
+                    shift_x1 = int(shift_x1)
+                    shift_y1 = int(shift_y1)
+                    mask_last = mask0.copy()
+                    if end_x1_i <= 0 and end_y1_i <= 0:
+                        mask0[0:nl + shift_y1, 0:ns + shift_x1] = mask_arr[-shift_y1:nl, -shift_x1:ns].copy()
+                        shadow_img_arr[:, :] = (
+                            np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
+                    elif end_x1_i <= 0 < end_y1_i:
+                        mask0[shift_y1:nl, 0:ns + shift_x1] = mask_arr[0:nl - shift_y1, -shift_x1:ns].copy()
+                        shadow_img_arr[:, :] = (
+                            np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
+                    elif end_x1_i > 0 >= end_y1_i:
+                        mask0[0:nl + shift_y1, shift_x1:ns] = mask_arr[-shift_y1:nl, 0:ns - shift_x1].copy()
+                        shadow_img_arr[:, :] = (
+                            np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
+                    elif end_x1_i > 0 and end_y1_i > 0:
+                        mask0[shift_y1:nl, shift_x1:ns] = mask_arr[0:nl - shift_y1, 0:ns - shift_x1].copy()
+                        shadow_img_arr[:, :] = (
+                            np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
+                # for edge: 4 cases
                 if end_x1_i <= 0 and end_y1_i <= 0:
-                    mask0[0:nl + shift_y1, 0:ns + shift_x1] = mask_arr[-shift_y1:nl, -shift_x1:ns].copy()
-                    shadow_img_arr[:, :] = (
-                        np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
+                    shadow_edge_arr[:, ns - 1 + end_x1_i:ns] = 99
+                    shadow_edge_arr[nl - 1 + end_y1_i:nl, :] = 99
                 elif end_x1_i <= 0 < end_y1_i:
-                    mask0[shift_y1:nl, 0:ns + shift_x1] = mask_arr[0:nl - shift_y1, -shift_x1:ns].copy()
-                    shadow_img_arr[:, :] = (
-                        np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
+                    shadow_edge_arr[:, ns - 1 + end_x1_i:ns] = 99
+                    shadow_edge_arr[0:end_y1_i + 1, :] = 99
                 elif end_x1_i > 0 >= end_y1_i:
-                    mask0[0:nl + shift_y1, shift_x1:ns] = mask_arr[-shift_y1:nl, 0:ns - shift_x1].copy()
-                    shadow_img_arr[:, :] = (
-                        np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
+                    shadow_edge_arr[:, 0:end_x1_i + 1] = 99
+                    shadow_edge_arr[nl - 1 + end_y1_i:nl, :] = 99
                 elif end_x1_i > 0 and end_y1_i > 0:
-                    mask0[shift_y1:nl, shift_x1:ns] = mask_arr[0:nl - shift_y1, 0:ns - shift_x1].copy()
-                    shadow_img_arr[:, :] = (
-                        np.logical_or(np.logical_or(mask0 == 2, mask_last == 2), shadow_img_arr[:, :] == 1)).astype(int)
-            # for edge: 4 cases
-            if end_x1_i <= 0 and end_y1_i <= 0:
-                shadow_edge_arr[:, ns - 1 + end_x1_i:ns] = 99
-                shadow_edge_arr[nl - 1 + end_y1_i:nl, :] = 99
-            elif end_x1_i <= 0 < end_y1_i:
-                shadow_edge_arr[:, ns - 1 + end_x1_i:ns] = 99
-                shadow_edge_arr[0:end_y1_i + 1, :] = 99
-            elif end_x1_i > 0 >= end_y1_i:
-                shadow_edge_arr[:, 0:end_x1_i + 1] = 99
-                shadow_edge_arr[nl - 1 + end_y1_i:nl, :] = 99
-            elif end_x1_i > 0 and end_y1_i > 0:
-                shadow_edge_arr[:, 0:end_x1_i + 1] = 99
-                shadow_edge_arr[0:end_y1_i + 1, :] = 99
+                    shadow_edge_arr[:, 0:end_x1_i + 1] = 99
+                    shadow_edge_arr[0:end_y1_i + 1, :] = 99
+        except IndexError:
+            shadow_img_arr = np.zeros((nl, ns)).astype(bytearray)
+            shadow_edge_arr = np.zeros((nl, ns)).astype(bytearray)
         return shadow_img_arr, shadow_edge_arr
     
     shadow_imgs = []
