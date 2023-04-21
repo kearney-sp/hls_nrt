@@ -1,6 +1,0 @@
-build:
-  docker:
-    web: Dockerfile
-run:
-  web: conda run -p /env
-  web: /env/bin/panel serve --address="0.0.0.0" --port=$PORT hls_aws_app.ipynb --allow-websocket-origin=range-sgx.herokuapp.com

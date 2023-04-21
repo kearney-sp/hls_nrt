@@ -1,0 +1,18 @@
+version: 1.0
+runtime: python3
+build:
+  commands:
+    pre-build:
+      - brew install proj geos
+      - pip install --upgrade pyshp
+      - pip install shapely --no-binary shapely 
+      - brew install pkg-config
+    build:
+      - pip install -r conda-requirements.txt
+      - pip install -r requirements.txt
+  env:
+    - name: PKG_CONFIG_PATH
+      value: /usr/local/bin/pkgconfig
+run:
+  runtime-version: 3.8
+  command: panel serve bokeh_interact_test.ipynb
