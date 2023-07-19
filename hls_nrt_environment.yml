@@ -387,6 +387,6 @@ dependencies:
   - zstd=1.5.2=h8a70e8d_2
   - pip:
       - gdal==3.4.3
-      - hls-nrt-utils
+      - git+https://github.com/kearney-sp/hls_nrt_utils.git
       - pysptools==0.15.0
 prefix: /home/spkearney/miniconda3/envs/hls_nrt_env
