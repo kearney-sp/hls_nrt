@@ -15,5 +15,5 @@ echo "Mounting completed."
 # Timeout is set to 0 to disable the timeouts of the workers to allow Cloud Run to handle instance scaling.
 exec /env/bin/panel serve /app/hls_gcloud_app.ipynb --address 0.0.0.0 --port 8080 --allow-websocket-origin "*"
 
-# Exit immediately when one of the background processes terminate.
-wait -n
+# Set to -n to exit immediately when one of the background processes terminate.
+wait -y

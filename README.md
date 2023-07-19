@@ -1,13 +1,24 @@
 # hls_nrt
 Near-real-time applications for Harmonized Landsat-Sentinel data
 
-Beta notebook with nbgitpuller: [![Binder](https://aws-uswest2-binder.pangeo.io/badge_logo.svg)](https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/binder?urlpath=git-pull%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fkearney-sp%252Fhls_nrt%26urlpath%3Dlab%252Ftree%252Fhls_nrt%252Fhls_aws_app.ipynb%26branch%3Dmain)
+## Objectives
+The scripts in the main folder will update the CPER viewer app on gcloud. They are primarily designed to be run on SCINet (CERES). They pull near-real time Harmonized Landsat-Sentinel data from LPDAAC, smooth and gap-fill the data, apply saved models to compute weekly standing biomass, fractional vegetation cover and NDVI, compute means by pasture and then upload all maps and summary data to gcloud. The app will update automatically once new data are uploaded.
 
-Beta dashboard with nbgitpuller: [![Binder](https://aws-uswest2-binder.pangeo.io/badge_logo.svg)](https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/binder?urlpath=git-pull%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fkearney-sp%252Fhls_nrt%26urlpath%3Dpanel%252Fhls_aws_app.ipynb%26branch%3Dmain)
+## Workflow
+#### Download data to /90daydata
+Run HLS2_aoi_yr_download.ipynb.  
+Set the desired year and area of interest (AOI) using the *prefix* parameter. For now, really only works with 'cper' as the AOI prefix.
+##### *Outputs*
+Saves a single .nc file to disk in /90daydata/cper_neon_aop/--*prefix*--
 
-https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/binder?urlpath=git-pull%3Frepo%3Dhttps%253A%252F%252Fgithub.com%252Fkearney-sp%252Fhls_nrt%26urlpath%3Dlab%252Ftree%252Fhls_nrt%252Fhls_aws_app.ipynb%26branch%3Dmain
+#### Compute all the vegetation products
+Run HLS2_aoi_veg_products.ipynb
 
+#### Save all vegetation products in format for gcloud
+Run HLS2_aoi_products_to_gcloud.ipynb
 
-https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/main?filepath=hls_aws_app.ipynb
+#### Compute and save all pasture means
+Run HLS2_aoi_compute_means.ipynb
 
-https://aws-uswest2-binder.pangeo.io/v2/gh/kearney-sp/hls_nrt/main?urlpath=/panel/hls_aws_app
+#### Upload everything to gcloud
+Run HLS2_upload_to_gcloud.ipynb
