@@ -140,3 +140,6 @@ data/gcloud/
 
 # Open On Demands
 core.*
+
+# temporary ghost files
+.~*
