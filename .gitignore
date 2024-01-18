@@ -136,6 +136,8 @@ output/
 data/hls_nrt/
 data/ee_lta/
 data/gcloud/
+data/predictions/
+*.tif
 *.nc
 
 # Open On Demands
