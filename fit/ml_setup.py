@@ -63,6 +63,18 @@ cper_var_dict = {
     'SWIR2': 'swir2'
 }
 
+def logy(x):
+    return np.log(1 + x)
+
+def logy_bt(x):
+    return np.exp(x) - 1
+
+def sqrty(x):
+    return np.sqrt(x)
+
+def sqrty_bt(x):
+    return x**2
+
 def make_model_dictionary(var_names, y_col, device):
     
     rnr = NeuralNetRegressor(
@@ -87,7 +99,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_refit_type': None,
             'variable_importance': False,
             'scale_x': False,
-            'log_y': True,
+            'xfrm_y': logy,
+            'bxfrm_y': logy_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -100,7 +113,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_refit_type': 'minimize',
             'variable_importance': False,
             'scale_x': False,
-            'log_y': True,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -113,7 +127,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_refit_type': 'minimize',
             'variable_importance': False,
             'scale_x': False,
-            'log_y': True,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -135,7 +150,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': False,
             'scaler': StandardScaler(),
-            'log_y': True,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': True,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -160,7 +176,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': False,
             'scaler': StandardScaler(),
-            'log_y': True,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -183,7 +200,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': False,
             'scaler': StandardScaler(),
-            'log_y': True,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -206,7 +224,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': False,
             'scaler': StandardScaler(),
-            'log_y': False,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -231,7 +250,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': False,
             'scaler': StandardScaler(),
-            'log_y': False,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -257,7 +277,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': False,
             'scaler': StandardScaler(),
-            'log_y': False,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -277,7 +298,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': True,
             'scaler': StandardScaler(),
-            'log_y': False,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -303,7 +325,8 @@ def make_model_dictionary(var_names, y_col, device):
             'tune_results': {},
             'scale_x': True,
             'scaler': MinMaxScaler(),
-            'log_y': False,
+            'xfrm_y': sqrty,
+            'bxfrm_y': sqrty_bt,
             'interactions': False,
             'interaction_only': True,
             'interaction_poly': 2,
@@ -375,7 +398,8 @@ def fit_dnn(mod_base, batch_start, batch_size, all_x, all_y, loss_fn, optimizer)
 
 def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_group, tuneby_group, kfold_type, tune_kfold_type, outFILE_tmp, outDIR,
                   backend, nthreads,
-                  cper_mod_xfrm, cper_mod_xfrm_func, cper_var_dict=cper_var_dict):
+                  cper_mod_xfrm, cper_mod_xfrm_func, cper_var_dict=cper_var_dict,
+                  n_splits=10):
     if os.path.exists(outFILE_tmp):
         print('Output file already exists. Loading saved dataset.')
         df = pd.read_csv(outFILE_tmp, parse_dates=[date_col])
@@ -385,16 +409,17 @@ def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_grou
         for k in mod_dict:
             if mod_dict[k]['fit']:
                 df[k] = np.nan
+        if kfold_type == 'group_k':
+            df['kfold'] = np.nan
     
     mod_logo = LeaveOneGroupOut()
-    mod_groupk = GroupKFold(n_splits=10)
+    mod_groupk = GroupKFold(n_splits=n_splits)
     
     if kfold_type == 'logo':
         mod_split = mod_logo
     elif kfold_type == 'group_k':
         mod_split = mod_groupk
         kfold = 0
-        df['kfold'] = np.nan
         
     scoring = {
         #'R2': 'r2',
@@ -437,9 +462,9 @@ def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_grou
                     t0 = time.time()
                     
                     # prep data
-                    if mod_dict[k]['log_y']:
-                        all_y = np.log(1 + all_y_orig)
-                        all_Y = np.log(1 + all_Y_orig)
+                    if mod_dict[k]['xfrm_y'] is not None:
+                        all_y = all_y_orig.apply(mod_dict[k]['xfrm_y'])     
+                        all_Y = all_Y_orig.apply(mod_dict[k]['xfrm_y'])
                     else:
                         all_y = all_y_orig.copy()
                         all_Y = all_Y_orig.copy()
@@ -660,16 +685,22 @@ def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_grou
                         #                                                          'Variable': var_names_out,
                         #                                                          'PI': rf_pi.importances_mean})])
                     
-                    if mod_dict[k]['log_y']:
+                    if mod_dict[k]['bxfrm_y'] is not None:
                         if mod_dict[k] == 'OLS':
-                            preds = np.exp(mod_fnl.predict(df_train))
+                            preds = mod_fnl.predict(df_train)
+                            preds[preds < 0] = 0
+                            preds = mod_dict[k]['bxfrm_y'](preds)
                         else:
-                            preds = np.exp(mod_fnl.predict(all_X).squeeze()) + 1
+                            preds = mod_fnl.predict(all_X).squeeze()
+                            preds[preds < 0] = 0
+                            preds = mod_dict[k]['bxfrm_y'](preds)
                     else:
                         if mod_dict[k] == 'OLS':
                             preds = mod_fnl.predict(df_train)
+                            preds[preds < 0] = 0
                         else:
                             preds = mod_fnl.predict(all_X).squeeze()
+                            preds[preds < 0] = 0
     
                     # apply transformation to CPER 2022 model
                     if (k == 'CPER_2022') and (cper_mod_xfrm):

@@ -1,15 +1,16 @@
 import os
 
 nickname = 'ltar_arch'
-kfold_group = 'ID'
-tuneby_group = 'ID'
+kfold_group = 'Pasture'
+tuneby_group = 'Pasture'
 
 logo_group = 'kfold'
 mod_col = 'Source'
 
 inDIR = '../data/modeling/tmp'
 
-drop_cols = ['Date', 'lat', 'long', 'Low', 'High', 'PP_g', 'ID_yr']
+#drop_cols = ['Date', 'lat', 'long', 'Low', 'High', 'PP_g', 'ID_yr']
+drop_cols = ['lat', 'long', 'Low']
 id_cols = ['kfold', 'ID', 'Pasture', 'Treatment', 'Date_mean', 'Year', 'Season', 'Observed']
 if logo_group in id_cols:
     id_cols.remove(logo_group)
@@ -17,7 +18,7 @@ if logo_group in id_cols:
 # unique sub-plot ID column name
 id_col_sub = None
 # unique plot ID column name
-id_col = 'ID'
+id_col = 'Pasture'
 # date column name
 date_col = 'Date_mean'
 # pasture column name

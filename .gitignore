@@ -139,6 +139,7 @@ data/gcloud/
 data/predictions/
 *.tif
 *.nc
+*.tiff
 
 # Open On Demands
 core.*

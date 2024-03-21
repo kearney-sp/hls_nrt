@@ -7,8 +7,8 @@ import numpy as np
 
 # dask cluster location
 cluster_loc = 'hpc'
-tuneby_group = 'ID'
-kfold_group = 'ID'
+tuneby_group = 'Pasture'
+kfold_group = 'Pasture'
 
 kfold_type = 'group_k'
 tune_kfold_type = 'group_k'
@@ -28,7 +28,7 @@ outDIR = '../data/modeling/'
 outFILE_tmp = os.path.join(outDIR, 'tmp', nickname + '_cv_' + kfold_group + '_tuneby_' + tuneby_group + '_tmp.csv')
 
 # unique ID column name
-id_col = 'ID'
+id_col = 'Pasture'
 # date column name
 date_col = 'Date_mean'
 # dependent variable column
@@ -52,7 +52,7 @@ var_names = [
     'BLUE', 'GREEN', 'RED', 'NIR1', 'SWIR1', 'SWIR2'
 ]
 
-def load_df(inPATH, date_col):
+def load_df(inPATH, date_col, group_pastures=True):
     # Preprocessing steps here
     df = pd.read_csv(inPATH, parse_dates=[date_col])
     
@@ -79,5 +79,10 @@ def load_df(inPATH, date_col):
     # remove suspected outlier
     df = df[df[y_col] < 20000]
     print('Removing outlier with dependent variable greater than 20,000 kg/ha')
+
+    if group_pastures:
+        # group by pasture before fitting models
+        print('Grouping data by pasture')
+        df = df.groupby(['Pasture', date_col, 'Treatment', 'Year']).mean().reset_index()
 
     return df
