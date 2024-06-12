@@ -28,9 +28,9 @@ group_cols = ['year']
 plot_group_cols = [mod_col, id_col]
 
 # dependent variable column
-y_col = 'herb_kg_ha'
+y_col = 'Biomass_kg_ha'
 
-inPATH = os.path.join(inDIR, nickname + '_cv_' + kfold_group + '_tuneby_' + tuneby + '_tmp.csv')
+inPATH = os.path.join(inDIR, nickname + '_cv_' + kfold_group + '_tuneby_' + tuneby_group + '_tmp.csv')
 
 var_names = [
     'NDVI', 'DFI', 'NDTI', 'SATVI', 'NDII7', 'SAVI',

@@ -18,6 +18,7 @@ inFILE = 'herb-biomass-gb-ltar_hls.csv'
 nickname = 'ltar_gb'
 
 inPATH = os.path.join(inDIR, inFILE)
+inPATH2 = '../data/ground/LTVR_herbaceous_functional_type_biomass_2015-2022.csv'
 
 outDIR = '../data/modeling/'
 
@@ -28,7 +29,7 @@ id_col = 'id'
 # date column name
 date_col = 'date_median'
 # dependent variable column
-y_col = 'herb_kg_ha'
+y_col = 'Biomass_kg_ha'
 
 # apply transformation to dependent variable
 y_col_xfrm = False
@@ -51,6 +52,17 @@ var_names = [
 def load_df(inPATH, date_col):
     # Preprocessing steps here
     df = pd.read_csv(inPATH, parse_dates=[date_col])
+    df_gb2 = pd.read_csv(inPATH2)
+    df_gb2['site'] = df_gb2['vegtype'] + df_gb2['siteno'].astype('str')
+    df_gb2 = df_gb2.groupby(['year', 'site', 'plot'])['g.m2'].sum().reset_index()
+    df_gb2 = df_gb2.groupby(['year', 'site'])['g.m2'].mean().reset_index()
+    df = pd.merge(df, 
+                  df_gb2[['site', 'year', 'g.m2']], 
+                  left_on=[id_col, 'year'], 
+                  right_on=['site', 'year'], 
+                  how='left')
+    df = df.rename(columns={'herb_kg_ha': 'herb_kg_ha_old'})
+    df['Biomass_kg_ha'] = df['g.m2'] * 10
     
     df['Year'] = df[date_col].dt.year
 

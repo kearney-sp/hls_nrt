@@ -35,7 +35,7 @@ y_coord_col = 'Y_coord'
 input_epsg = 4326
 
 # coordinate reference system (CRS) in ESPG format of the output data
-output_epsg = 32616
+output_epsg = 32614
 
 # specify buffer (in output_espg units) surrounding the point
 # NOTE: a buffer of at least ~21.22 m around a point is required to 

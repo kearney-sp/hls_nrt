@@ -21,6 +21,9 @@ import torch.nn as nn
 import torch.optim as optim
 import skorch
 from skorch import NeuralNetRegressor
+import matplotlib.pyplot as plt
+import gc
+import re
 
 import sys
 sys.path.insert(1, '/project/cper_neon_aop/hls_nrt/extract')
@@ -30,7 +33,7 @@ from dnn_setup import ResNetRegressor, ResidualBlock
 import warnings
 from sklearn.exceptions import ConvergenceWarning
 
-lr_mod = pickle.load(open("/project/cper_neon_aop/cper_hls_veg_models/models/biomass/CPER_HLS_to_VOR_biomass_model_lr_simp.pk", 'rb'))
+lr_mod = pd.compat.pickle_compat.load(open("/project/cper_neon_aop/cper_hls_veg_models/models/biomass/CPER_HLS_to_VOR_biomass_model_lr_simp.pk", 'rb'))
 
 cper_var_dict = {
     'NDVI': 'ndvi',
@@ -211,15 +214,15 @@ def make_model_dictionary(var_names, y_col, device):
             'base_mod': Pipeline(
                 [
                     ('scaler', StandardScaler()), 
-                    ('SVR', SVR(kernel='linear'))
+                    ('SVR', SVR(kernel='linear', cache_size=1000))
                 ]),
             'fit': True,
             'variable_importance': True,
             'tune': True,
             'tune_refit': 'MAE',
             'param_grid': {
-                'SVR__C': np.logspace(1.5, 4, 10, base=10),
-                'SVR__gamma': np.logspace(-3.5, 0, 10, base=10)
+                'SVR__C': np.logspace(0.1, 3.0, 10, base=10),
+                #'SVR__gamma': np.logspace(-3.5, 0, 10, base=10)
             },
             'tune_results': {},
             'scale_x': False,
@@ -242,10 +245,10 @@ def make_model_dictionary(var_names, y_col, device):
             'variable_importance': True,
             'tune_refit': 'MAE',
             'param_grid': {
-                'RF__min_samples_split': [0.0001, 0.001, 0.005, 0.01],
-                #'n_estimators': [400],
-                'RF__max_samples': [0.2, 0.3, 0.5, 0.7, 0.9],
-                'RF__max_features': [0.1, 0.25, 0.5, 0.75, 1.0]
+                'RF__min_samples_split': [0.001, 0.01, 0.10],
+                'RF__n_estimators': [200, 400],
+                'RF__max_samples': [0.25, 0.5, 0.75, 0.90],
+                'RF__max_features': [0.05, 0.1, 0.25, 0.5, 0.75, 1.0]
             },
             'tune_results': {},
             'scale_x': False,
@@ -269,10 +272,10 @@ def make_model_dictionary(var_names, y_col, device):
             'tune': True,
             'tune_refit': 'MAE',
             'param_grid': {
-                'GBR__learning_rate': [0.01, 0.025, 0.05, 0.075, 0.1],
-                'GBR__min_samples_split': [0.001, 0.005, 0.01, 0.025, 0.05, 0.10, 0.15, 0.20, 0.25, 0.30],
-                'GBR__n_estimators': [100, 200, 400, 600, 800],
-                'GBR__max_features': [0.1, 0.25, 0.5]
+                'GBR__learning_rate': [0.1, 0.05, 0.025, 0.01, 0.001],
+                'GBR__min_samples_split': [0.001, 0.01, 0.10],
+                'GBR__n_estimators': [200, 400, 600, 800],
+                #'GBR__max_features': [0.1, 0.25, 0.5]
             },
             'tune_results': {},
             'scale_x': False,
@@ -315,10 +318,10 @@ def make_model_dictionary(var_names, y_col, device):
                 'module__block': [ResidualBlock],
                 'module__layers': [[3, 4, 6, 3]], 
                 'module__n_inputs': [len(var_names)],
-                'optimizer__momentum': [0.75, 0.85, 0.95],
-                'optimizer__weight_decay': [1e-2, 1e-4],
+                'optimizer__momentum': [0.95],
+                'optimizer__weight_decay': [1e-2],
                 'optimizer__nesterov': [True],
-                'lr': [0.01, 0.001, 0.0001],
+                'lr': [0.1, 0.05, 0.025, 0.01, 0.001],
                 'batch_size': [64],
                 'max_epochs': [100],
             },
@@ -398,19 +401,20 @@ def fit_dnn(mod_base, batch_start, batch_size, all_x, all_y, loss_fn, optimizer)
 
 def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_group, tuneby_group, kfold_type, tune_kfold_type, outFILE_tmp, outDIR,
                   backend, nthreads,
-                  cper_mod_xfrm, cper_mod_xfrm_func, cper_var_dict=cper_var_dict,
+                  cper_mod_xfrm, cper_mod_xfrm_func, client,
+                  cper_var_dict=cper_var_dict,
                   n_splits=10):
     if os.path.exists(outFILE_tmp):
         print('Output file already exists. Loading saved dataset.')
         df = pd.read_csv(outFILE_tmp, parse_dates=[date_col])
         with open(os.path.join(outDIR, 'tmp', 'ml_train_' + nickname + '_cv_' + kfold_group + '_tuneby_' + tuneby_group + '_results.pk'), 'rb') as f:
-            mod_dict = pickle.load(f)
+            mod_dict = pd.compat.pickle_compat.load(f)
     else:
         for k in mod_dict:
             if mod_dict[k]['fit']:
                 df[k] = np.nan
         if kfold_type == 'group_k':
-            df['kfold'] = np.nan
+            df['kfold'] = ''
     
     mod_logo = LeaveOneGroupOut()
     mod_groupk = GroupKFold(n_splits=n_splits)
@@ -435,7 +439,7 @@ def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_grou
     else:
         from sklearn.model_selection import GridSearchCV
     
-    restart_dask = False
+    restart_dask = True
     
     for train_index, test_index in mod_split.split(df[var_names], groups=df[kfold_group], ):
         logo_test = df[kfold_group].iloc[test_index].unique()
@@ -457,7 +461,7 @@ def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_grou
         for k in mod_dict:
             if mod_dict[k]['fit']:
                 if df[df[kfold_group].isin(logo_test)][k].isnull().all():
-                    #restart_dask = True
+                    restart_dask = False
                     print('....fitting ' + k, end = " ")
                     t0 = time.time()
                     
@@ -716,6 +720,9 @@ def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_grou
         
                     with open(os.path.join(outDIR, 'tmp', 'ml_train_' + nickname + '_cv_' + kfold_group + '_tuneby_' + tuneby_group + '_results.pk'), 'wb') as fp:
                         pickle.dump(mod_dict, fp, protocol=pickle.HIGHEST_PROTOCOL)
+                    if mod_dict[k]['tune'] and (mod_dict[k] in ['SVR', 'RF', 'GBR']):
+                        del grid_search, mod_fnl
+                        gc.collect()
                 else:
                     restart_dask = False
                     print('Skipping ' + k + ', data already in saved dataframe.')
@@ -728,3 +735,351 @@ def run_ml_models(nickname, mod_dict, df, y_col, date_col, var_names, kfold_grou
             client.restart(wait_for_workers=False)
             # make sure there are at least some workers before fetching data
             client.wait_for_workers(n_workers=num_jobs*num_processes*0.35, timeout=300)
+
+def r_corrcoef(y_obs, y_pred):
+    corr_matrix = np.corrcoef(y_obs, y_pred)
+    corr = corr_matrix[0,1]
+    r = corr
+    return r
+
+def run_ml_models_bootstrap_yr(nickname, mod_dict, df, y_col, date_col, var_names,
+                               tuneby_group,
+                               backend, nthreads,
+                               cper_mod_xfrm, cper_mod_xfrm_func, client,
+                               cper_var_dict=cper_var_dict,
+                               retune_bootstrap=True,
+                               agg_plot=False,
+                               save_path=None):
+    from sklearn.metrics import r2_score
+    import itertools
+    from tqdm import tqdm
+
+    if save_path is None:
+        df_results_yrs = None
+    else:
+        if os.path.exists(save_path):
+            df_results_yrs = pd.read_csv(save_path)
+        else:
+            df_results_yrs = None
+    
+    mod_logo = LeaveOneGroupOut()
+    mod_split = mod_logo
+
+    scoring = {
+        'MAE': 'neg_mean_absolute_error',
+    }
+    if backend == 'dask':
+        from dask_ml.model_selection import GridSearchCV
+        from sklearn.model_selection import GridSearchCV as skGridSearchCV
+    else:
+        from sklearn.model_selection import GridSearchCV
+    
+    idx_ct = 0
+    for yr_n in range(3, 1 + len(df['Year'].unique())):
+        print('Running ' + str(yr_n) + '-year combos')
+        combos = list(itertools.combinations(df['Year'].unique(), yr_n))
+        print(len(combos))
+        if ((yr_n - 1) in df_results_yrs['numb_yrs'].unique()) and all(
+            df_results_yrs[df_results_yrs['numb_yrs'] == yr_n - 1].groupby('Model').count()['numb_yrs']/yr_n == len(combos)):
+            print('All iterations run for all models. Skipping combos.')
+            continue
+        else:
+            for yr_combo in tqdm(combos):
+                df_sub = df[df['Year'].isin(yr_combo)]
+                df_sub = df_sub.dropna(subset=var_names + [y_col])
+                t0 = time.time()
+                
+                for train_index, test_index in mod_logo.split(df_sub, groups=df_sub['Year']):
+                    yr = df_sub[date_col].dt.year.iloc[test_index].unique()[0]
+                    #print(str(df_sub[date_col].dt.year.iloc[train_index].unique()))
+                    #print(len(str(df_sub[date_col].dt.year.iloc[train_index].unique())))
+                    #df_results_yrs = df_results_yrs.reset_index(drop=True)
+                    train_yrs_tmp = re.sub(',',
+                                           '', 
+                                           str(df_sub[date_col].dt.year.iloc[train_index].unique()))
+                    outlen_tmp = sum(df_results_yrs['yr_train'].isin([train_yrs_tmp]) & (df_results_yrs['yr_test'] == yr))
+                    if outlen_tmp == sum([int(mod_dict[i]['fit']) for i in mod_dict.keys()]):
+                        continue
+                    else:
+                        logo_k = yr
+                        train_loc = df_sub.iloc[train_index].index
+                        test_loc = df_sub.iloc[test_index].index
+                        
+                        all_y_orig = df_sub[y_col].iloc[train_index]
+                        all_Y_orig = df_sub[y_col].iloc[test_index]
+                        all_x_orig = df_sub[var_names].iloc[train_index, :]
+                        all_X_orig = df_sub[var_names].iloc[test_index, :]
+                    
+                        for k in mod_dict:
+                            if mod_dict[k]['fit']:
+                                #print('....fitting ' + k, end = " ")
+                                run_check = k + ' '.join([str(x) for x in df_sub[date_col].dt.year.iloc[train_index].unique()])+str(yr)
+                                if df_results_yrs is not None:
+                                    run_check_result = run_check in df_results_yrs.apply(
+                                        lambda x: x['Model']+''.join([str(i) for i in x['yr_train'] if i not in ['[', ']']])+str(x['yr_test']),
+                                        axis=1).values
+                                if df_results_yrs is not None and run_check_result:
+                                        #print('Skipping ' + run_check + '. Already saved.')
+                                        continue
+                                else:
+                                    # prep data
+                                    if mod_dict[k]['xfrm_y'] is not None:
+                                        all_y = all_y_orig.apply(mod_dict[k]['xfrm_y'])     
+                                        all_Y = all_Y_orig.apply(mod_dict[k]['xfrm_y'])
+                                    else:
+                                        all_y = all_y_orig.copy()
+                                        all_Y = all_Y_orig.copy()
+                                    if mod_dict[k]['scale_x']:
+                                        scaler = mod_dict[k]['scaler']
+                                        scaler.fit(all_x_orig)
+                                        all_x = scaler.transform(all_x_orig)
+                                        all_X = scaler.transform(all_X_orig)
+                                    else:
+                                        all_x = all_x_orig.copy()
+                                        all_X = all_X_orig.copy()
+                                    
+                                    if mod_dict[k]['interactions']:
+                                        poly_x = PolynomialFeatures(degree=mod_dict[k]['interaction_poly'], 
+                                                                    interaction_only=mod_dict[k]['interaction_only'], include_bias = False)
+                                        all_x = poly_x.fit_transform(all_x)
+                                        poly_X = PolynomialFeatures(degree=mod_dict[k]['interaction_poly'], 
+                                                                    interaction_only=mod_dict[k]['interaction_only'], include_bias = False)
+                                        all_X = poly_X.fit_transform(all_X)
+                                        var_names_out = poly_x.get_feature_names_out(var_names)
+                                    else:
+                                        var_names_out = var_names
+                        
+                                    # create a base model
+                                    mod_base = mod_dict[k]['base_mod']
+                                    # set parameters
+                                    if retune_bootstrap:
+                                        split_groups = df[tuneby_group].iloc[train_index]
+                                        cv_splitter = mod_logo.split(all_x, groups=split_groups)
+            
+                                        if 'OLS' in k:
+                                            df_train = pd.merge(pd.DataFrame(data=all_y),
+                                                                pd.DataFrame(columns=all_x_orig.columns, data=all_x, index=all_x_orig.index),
+                                                                left_index=True,
+                                                                right_index=True)
+                                            df_test = pd.merge(pd.DataFrame(data=all_Y),
+                                                                pd.DataFrame(columns=all_X_orig.columns, data=all_X, index=all_X_orig.index),
+                                                                left_index=True,
+                                                                right_index=True)
+                                            if k == 'OLS_2022':
+                                                form_fnl = mod_dict[k]['base_mod']
+                                            else:
+                                                idx = 0
+                                                df_results_list = []
+                                                for k_fold in range(1, 3 + 1):
+                                                    for combo in itertools.combinations(var_names, k_fold):
+                                                        combo_corr = df[np.array(combo)].corr()
+                                                        if ((combo_corr != 1.0) & (combo_corr.abs() > 0.8)).any(axis=None):
+                                                            continue
+                                                        else:
+                                                            lr_form = mod_dict[k]['base_mod'] + combo[0]
+                                                            if k_fold > 1:
+                                                                for c in combo[1:]:
+                                                                    lr_form = lr_form + ' + ' + c
+                                                                for combo_c in itertools.combinations(combo, 2):
+                                                                    lr_form = lr_form + ' + ' + combo_c[0] + ':' + combo_c[1]
+                                                            df_results_tmp = fit_ols(all_x,
+                                                                                     mod_split, 
+                                                                                     split_groups,
+                                                                                     df_train,
+                                                                                     y_col,
+                                                                                     lr_form, 
+                                                                                     yr,
+                                                                                     logo_k, 
+                                                                                     k_fold,
+                                                                                     idx)
+                                                            df_results_list.append(df_results_tmp)
+                                                            #mod_dict[k]['formula_df'] = pd.concat([df_results_tmp.compute(), mod_dict[k]['formula_df']])
+                                                            #break
+                                                df_results = dask.compute(df_results_list)
+                                                mod_dict[k]['formula_df'] = pd.concat([mod_dict[k]['formula_df'], pd.concat(df_results[0])])
+                                                if mod_dict[k]['tune_refit_type'] == 'minimize':
+                                                    tune_loc = 0
+                                                elif mod_dict[k]['tune_refit_type'] == 'maximize':
+                                                    tune_loc = -1
+                                                form_fnl = mod_dict[k]['formula_df'][mod_dict[k]['formula_df']['kfold'] == logo_k].sort_values(
+                                                    mod_dict[k]['tune_refit'])['formula'].iloc[tune_loc]
+                                            mod_fnl = smf.ols(formula=form_fnl, data=df_train).fit()
+                                        
+                                        elif k == 'MLP':
+                                            from sklearn.model_selection import GridSearchCV as skGridSearchCV
+                                            grid_search = skGridSearchCV(estimator=mod_base,
+                                                                           param_grid=mod_dict[k]['param_grid'],
+                                                                           scoring=scoring, 
+                                                                           refit=mod_dict[k]['tune_refit'], 
+                                                                           return_train_score=True,
+                                                                           cv=cv_splitter, 
+                                                                           n_jobs=min(sum([len(x) for x in mod_dict[k]['param_grid']]),
+                                                                                      len(client.nthreads())))
+                                            with parallel_backend('threading'):
+                                                with warnings.catch_warnings():
+                                                    warnings.simplefilter("ignore", category=ConvergenceWarning)
+                                                    grid_search.fit(all_x, all_y)
+                                            mod_fnl = mod_base.set_params(**grid_search.best_params_)
+                                            mod_fnl.fit(all_x, all_y)
+                                            mod_dict[k]['tune_results'][logo_k] = grid_search.cv_results_
+                                        elif k == 'DNN':
+                                            from sklearn.model_selection import GridSearchCV as skGridSearchCV
+                                            grid_search = skGridSearchCV(estimator=mod_base,
+                                                                         param_grid=mod_dict[k]['param_grid'],
+                                                                         scoring=scoring, 
+                                                                         refit=mod_dict[k]['tune_refit'], 
+                                                                         return_train_score=True,
+                                                                         cv=cv_splitter, 
+                                                                         n_jobs=min(sum([len(x) for x in mod_dict[k]['param_grid']]),
+                                                                                      len(client.nthreads())))
+                                            grid_search.fit(all_x, all_y)
+                                            mod_fnl = mod_base.set_params(**grid_search.best_params_)
+                                            mod_fnl.fit(all_x, all_y)
+                                            ax = plt.subplot()
+                                            p_vl, = ax.plot(mod_fnl.history[:, 'valid_loss'], label='Validation')
+                                            p_tl, = ax.plot(mod_fnl.history[:, 'train_loss'], label='Training')
+                                            ax.legend(handles=[p_vl, p_tl])
+                                            plt.show()
+                                            mod_dict[k]['tune_results'][logo_k] = grid_search.cv_results_
+                                        else:
+                                            grid_search = GridSearchCV(estimator=mod_base,
+                                                                           param_grid=mod_dict[k]['param_grid'],
+                                                                           scoring=scoring, 
+                                                                           refit=mod_dict[k]['tune_refit'], 
+                                                                           return_train_score=True,
+                                                                           cv=cv_splitter, 
+                                                                           n_jobs=min(sum([len(x) for x in mod_dict[k]['param_grid']]),
+                                                                                     nthreads))
+                                            with parallel_backend(backend):
+                                                with warnings.catch_warnings():
+                                                    warnings.simplefilter("ignore", category=ConvergenceWarning)
+                                                    grid_search.fit(all_x, all_y)
+                                            mod_fnl = mod_base.set_params(**grid_search.best_params_)
+                                            mod_fnl.fit(all_x, all_y)
+                                            mod_dict[k]['tune_results'][logo_k] = grid_search.cv_results_
+                                    else:
+                                        if k == 'OLS_2022':
+                                            form_fnl = mod_base
+                                            df_train = pd.merge(pd.DataFrame(data=all_y),
+                                                            pd.DataFrame(columns=all_x_orig.columns, data=all_x, index=all_x_orig.index),
+                                                            left_index=True,
+                                                            right_index=True)
+                                            mod_fnl = smf.ols(formula=form_fnl, data=df_train).fit()
+                                        elif k == 'OLS':
+                                            form_fnl = mod_dict[k]['formula_df'].sort_values('mae_orig_mean')['formula'].iloc[0]
+                                            df_train = pd.merge(pd.DataFrame(data=all_y),
+                                                            pd.DataFrame(columns=all_x_orig.columns, data=all_x, index=all_x_orig.index),
+                                                            left_index=True,
+                                                            right_index=True)
+                                            mod_fnl = smf.ols(formula=form_fnl, data=df_train).fit()
+                                        elif k == 'DNN':
+                                            mod_fnl = mod_base
+                                            mod_fnl.fit(all_x, all_y)
+                                            ax = plt.subplot()
+                                            p_vl, = ax.plot(mod_fnl.history[:, 'valid_loss'], label='Validation')
+                                            p_tl, = ax.plot(mod_fnl.history[:, 'train_loss'], label='Training')
+                                            ax.legend(handles=[p_vl, p_tl])
+                                            plt.show()
+                                            cp = skorch.callbacks.Checkpoint(dirname='results/dnn_checkpoints')
+                                            mod_fnl.initialize()
+                                            mod_fnl.load_params(checkpoint=cp)
+                                            mod_fnl.fit(all_x, all_y)
+                                        else:
+                                            if mod_dict[k]['tune']:
+                                                mod_fnl = mod_base.set_params(**mod_dict[k]['param_best'])
+                                            else:
+                                                mod_fnl = mod_base
+            
+                                            mod_fnl.fit(all_x, all_y)
+                                        
+                                        
+                                
+                                    if mod_dict[k]['bxfrm_y'] is not None:
+                                        if mod_dict[k] == 'OLS':
+                                            preds = mod_fnl.predict(df_train)
+                                            preds[preds < 0] = 0
+                                            preds = mod_dict[k]['bxfrm_y'](preds)
+                                        else:
+                                            preds = mod_fnl.predict(all_X).squeeze()
+                                            preds[preds < 0] = 0
+                                            preds = mod_dict[k]['bxfrm_y'](preds)
+                                    else:
+                                        if mod_dict[k] == 'OLS':
+                                            preds = mod_fnl.predict(df_train)
+                                            preds[preds < 0] = 0
+                                        else:
+                                            preds = mod_fnl.predict(all_X).squeeze()
+                                            preds[preds < 0] = 0
+                    
+                                    # apply transformation to CPER 2022 model
+                                    if (k == 'CPER_2022') and (cper_mod_xfrm):
+                                        preds = cper_mod_xfrm_func(preds)
+                                    
+                                    #print('(time to fit: ' + str(round(time.time() - t0, 2)) + ' secs)')
+                                
+                                    mae_kg_tmp = np.nanmean(np.abs(preds - all_Y_orig)).round(3)
+                                    mape_tmp = np.nanmean(np.abs(preds - all_Y_orig) / all_Y_orig).round(3)
+                                    mae_pct_tmp = (mae_kg_tmp / np.nanmean(all_Y_orig)).round(3)
+                                    r2_tmp = r2_score(all_Y_orig, preds).round(3)
+                                    r_corr_tmp = r_corrcoef(all_Y_orig, preds).round(3)
+        
+                                    if agg_plot:
+                                        df_test = df_sub.iloc[test_index].copy()
+                                        df_test['preds'] = preds
+                                        preds_plot = df_test.groupby([date_col, 'Plot'])['preds'].mean()
+                                        all_Y_orig_plot = df_test.groupby([date_col, 'Plot'])[y_col].mean()
+                                        mae_kg_tmp_plot = np.nanmean(np.abs(preds_plot - all_Y_orig_plot)).round(3)
+                                        mape_tmp_plot = np.nanmean(np.abs(preds_plot - all_Y_orig_plot) / all_Y_orig_plot).round(3)
+                                        mae_pct_tmp_plot = (mae_kg_tmp_plot / np.nanmean(all_Y_orig_plot)).round(3)
+                                        r2_tmp_plot = r2_score(all_Y_orig_plot, preds_plot).round(3)
+                                        r_corr_tmp_plot = r_corrcoef(all_Y_orig_plot, preds_plot).round(3)
+        
+                                        df_results_tmp = pd.DataFrame({'Model': k,
+                                                                       'numb_yrs': [yr_n - 1],
+                                                                      'yr_train': [df_sub[date_col].dt.year.iloc[train_index].unique()],
+                                                                      'yr_test': yr,
+                                                                      'retune_bootstrap': retune_bootstrap,
+                                                                      'MAE': mae_kg_tmp,
+                                                                      'MAPE': mape_tmp,
+                                                                      'MAE_pct': mae_pct_tmp,
+                                                                      'R2': r2_tmp,
+                                                                      'r_coef': r_corr_tmp,
+                                                                       'MAE_plot': mae_kg_tmp_plot,
+                                                                      'MAPE_plot': mape_tmp_plot,
+                                                                      'MAE_pct_plot': mae_pct_tmp_plot,
+                                                                      'R2_plot': r2_tmp_plot,
+                                                                      'r_coef_plot': r_corr_tmp_plot},
+                                                                     index=[idx_ct])
+                                    else:
+                                        df_results_tmp = pd.DataFrame({'Model': k,
+                                                                              'numb_yrs': [yr_n - 1],
+                                                                              'yr_train': [df_sub[date_col].dt.year.iloc[train_index].unique()],
+                                                                              'yr_test': yr,
+                                                                              'retune_bootstrap': retune_bootstrap,
+                                                                              'MAE': mae_kg_tmp,
+                                                                              'MAPE': mape_tmp,
+                                                                              'MAE_pct': mae_pct_tmp,
+                                                                              'R2': r2_tmp,
+                                                                              'r_coef': r_corr_tmp},
+                                                                             index=[idx_ct])
+                                    if df_results_yrs is not None:
+                                        df_results_yrs = pd.concat([df_results_yrs, df_results_tmp]).reset_index(drop=True)
+                                    else:
+                                        df_results_yrs = df_results_tmp.copy()
+                                    idx_ct += 1
+                                    if save_path is not None:
+                                        df_results_yrs.to_csv(save_path, index=False)
+                                    #if retune_bootstrap and (idx_ct%500==0):
+                                    #    nworkers=len(client.ncores())
+                                    #    client.restart(wait_for_workers=False)
+                                    #    try:
+                                    #        client.wait_for_workers(n_workers=int(nworkers*0.5), timeout=300)
+                                    #    except dask.distributed.TimeoutError as e:
+                                    #        print(str(int(nworkers*0.5)) + ' workers not available. Continuing with available workers.')
+                                            #print(e)
+                                    #        pass
+                                    #    display(client)
+                            else:
+                                continue
+    return df_results_yrs
+    
