@@ -13,6 +13,7 @@ def launch_dask(cluster_loc='local',
                 num_jobs=16,
                 partition='scavenger', 
                 slurm_opts={'interface': 'ens7f0'},
+                extra_directives=[],
                 duration='02:00:00',
                 wait_for_workers=True,
                 wait_proportion=0.5,
@@ -57,7 +58,7 @@ def launch_dask(cluster_loc='local',
                                     local_directory='$TMPDIR',
                                     death_timeout=wait_timeout,
                                     walltime=duration,
-                                    job_extra_directives=["--nodes=1"] + output_cmd)
+                                    job_extra_directives=["--nodes=1"] + output_cmd + extra_directives)
         else:
             clust = jq.SLURMCluster(queue=partition,
                                     processes=num_processes,
@@ -69,7 +70,7 @@ def launch_dask(cluster_loc='local',
                                     local_directory='$TMPDIR',
                                     death_timeout=wait_timeout,
                                     walltime=duration,
-                                    job_extra=["--nodes=1"] + output_cmd)
+                                    job_extra=["--nodes=1"] + output_cmd + extra_directives)
             
         client=Client(clust)
         #Scale Cluster 
